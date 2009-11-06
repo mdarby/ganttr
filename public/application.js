@@ -187,6 +187,8 @@ Day.prototype.draw = function(){
 function Point(x,y){
   this.x = parseInt(x);
   this.y = parseInt(y);
+
+  return this;
 }
 
 Point.prototype.toString = function(){
