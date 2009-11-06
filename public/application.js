@@ -18,7 +18,7 @@ Raphael.el.bottom_left_x = function(){
 }
 
 Raphael.el.bottom_left_y = function(){
-  return this.node.y.baseVal.value + this.getBBox().height;
+  return this.y() + this.getBBox().height;
 }
 
 Raphael.el.bottom_left_point = function(){
