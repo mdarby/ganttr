@@ -78,13 +78,6 @@ function Chart(num_boxes, start_date, end_date, canvas){
   return this;
 }
 
-Chart.prototype.point = function(x, y){
-  this.canvas.text((x), (y-10), "("+ x +","+ y +")").attr({fill: "red"});
-  this.canvas.circle(x, y, 3).attr({fill: "red", stroke: "#FFF"});
-
-  return this;
-}
-
 Chart.prototype.draw_boxes = function(){
   var boxes = new Array();
 
@@ -206,6 +199,12 @@ Point.prototype.shift = function(x,y){
   return new Point(x,y);
 }
 
+Point.prototype.draw = function(canvas){
+  canvas.text(this.x, (this.y - 10), "("+ this +")").attr({fill: "red"});
+  canvas.circle(this.x, this.y, 3).attr({fill: "red", stroke: "#FFF"});
+
+  return this;
+}
 
 
 // Box class
