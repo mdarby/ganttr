@@ -64,50 +64,49 @@ Date.prototype.monthsUntil = function(end_date){
 
 
 // Chart class
-function Chart(num_boxes, start_date, end_date, canvas){
-  this.num_boxes  = num_boxes;
+function Chart(boxes, start_date, end_date, canvas){
+  this.num_boxes  = boxes.length;
   this.start_date = start_date;
   this.end_date   = end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.height     = (timeline_size * 3) + (this.num_boxes * (box_height + box_offset));
   this.width      = this.num_days * timeline_size;
   this.canvas     = Raphael(0, 0, this.width, this.height);
-  this.timeline   = new Timeline(this.num_days, this);
-  this.boxes      = this.draw_boxes();
+  this.timeline   = new Timeline(this);
+  this.boxes      = this.draw_boxes(boxes);
 
   return this;
 }
 
-Chart.prototype.draw_boxes = function(){
-  var boxes = new Array();
+Chart.prototype.draw_boxes = function(boxes){
+  var b = new Array();
 
-  for(i=0; i < this.num_boxes; i++){
-    var x    = box_offset * i;
-    var y    = (timeline_size * 3) + (box_offset * i);
-    boxes[i] = new Box(x, y, 200, box_height, this.canvas);
+  for(i=0; i < boxes.length; i++){
+    var box = boxes[i];
+    var y   = (timeline_size * 3) + (box_offset * i);
+    b[i]    = new Box(y, box[0], box[1], this);
   }
 
-  return boxes;
+  return b;
 }
 
 
 
 // Timeline class
-function Timeline(num_days, chart){
-  this.chart    = chart;
-  this.canvas   = this.chart.canvas;
-  this.num_days = num_days;
+function Timeline(chart){
+  this.chart      = chart;
+  this.start_date = this.chart.start_date;
+  this.end_date   = this.chart.end_date;
+  this.num_days   = this.start_date.daysUntil(this.end_date);
+  this.canvas     = this.chart.canvas;
+  this.months     = this.draw_months();
+  this.days       = this.draw_days();
 
-  return this.draw();
-}
-
-Timeline.prototype.draw = function(start, end){
-  this.draw_months();
-  this.draw_days();
   return this;
 }
 
 Timeline.prototype.draw_months = function(){
+  var months      = new Array();
   var start_date  = this.chart.start_date;
   var end_date    = this.chart.end_date;
   var num_months  = start_date.monthsUntil(end_date);
@@ -117,19 +116,36 @@ Timeline.prototype.draw_months = function(){
     var curr_date = start_date.add(i).months();
     var x = (i * month_width);
 
-    new Month(x, timeline_size, month_width, curr_date, this.canvas);
+    months[i] = new Month(x, timeline_size, month_width, curr_date, this.canvas);
   }
 
+  return months;
 }
 
 Timeline.prototype.draw_days = function(){
-  var days = new Array("S","M","T","W","T","F","S");
-  var y = timeline_size;
+  var days = new Array();
+  var y    = timeline_size;
 
   for(i=0; i<this.num_days; i+=1){
-    var x     = i * timeline_size;
-    var label = days[i%7];
-    new Day(x, y, label, this.canvas);
+    var x    = i * timeline_size;
+    var date = this.start_date.add(1).days();
+
+    days[i] = new Day(x, y, date, this.canvas);
+  }
+
+  return days;
+}
+
+Timeline.prototype.day_at = function(date){
+  // Days are coming through correctly, but seemlingly not matching....
+  
+  
+  for(i=0; i<this.days.length; i++){
+    var curr_day = this.days[i];
+
+    if(curr_day.date == date){
+      return curr_day;
+    }
   }
 }
 
@@ -156,11 +172,14 @@ Month.prototype.draw = function(){
 
 
 // Day class
-function Day(x, y, text, canvas){
-  this.x      = x;
-  this.y      = y;
-  this.text   = text;
-  this.canvas = canvas;
+function Day(x, y, date, canvas){
+  this.x        = x;
+  this.y        = y;
+  this.date     = date;
+  this.canvas   = canvas;
+  this.day_abbr = new Array("S","M","T","W","T","F","S");
+  this.label    = this.day_abbr[i%7];
+  this.shape    = null;
 
   return this.draw();
 }
@@ -175,10 +194,14 @@ Day.prototype.center_point = function(){
 Day.prototype.draw = function(){
   var p = this.center_point();
 
-  this.canvas.rect(this.x, this.y, timeline_size, timeline_size).attr({fill: "#efefef"});
-  this.canvas.text(p.x, p.y, this.text);
+  this.shape = this.canvas.rect(this.x, this.y, timeline_size, timeline_size).attr({fill: "#efefef"});
+  this.canvas.text(p.x, p.y, this.label);
 
   return this;
+}
+
+Day.prototype.top_left = function(){
+  return new Point(this.x, this.y);
 }
 
 
@@ -210,13 +233,17 @@ Point.prototype.draw = function(canvas){
 
 
 // Box class
-function Box(x,y,w,h,canvas){
-  this.canvas = canvas;
-  this.shape = this.canvas.rect(x,y,w,h,box_radius);
-  this.x = x;
-  this.y = y;
-  this.w = w;
-  this.h = h;
+function Box(y, start_date, end_date, chart){
+  this.start_date = start_date;
+  this.end_date   = end_date;
+  this.start_day  = chart.timeline.day_at(start_date);
+  this.end_day    = chart.timeline.day_at(end_date);
+  this.x          = this.start_day.top_left.x;
+  this.y          = y
+  this.w          = null;
+  this.h          = box_height;
+  this.canvas     = chart.canvas;
+  this.shape      = this.canvas.rect(this.x, this.y, this.w, this.h, box_radius);
 
   this.shape.attr({fill: box_color, stroke: "#999"});
 
@@ -334,13 +361,18 @@ function interrogate(obj){
 
 
 $(document).ready(function(){
+  var box1       = new Array(new Date("Nov 1, 2009"), new Date("Nov 5, 2009"));
+  var box2       = new Array(new Date("Nov 7, 2009"), new Date("Nov 12, 2009"));
+  var box3       = new Array(new Date("Nov 15, 2009"), new Date("Nov 30, 2009"));
+
+  var all_boxes  = new Array(box1, box2, box3);
   var start_date = new Date("Nov 1, 2009");
   var end_date   = new Date("Dec 31, 2009");
-  var chart      = new Chart(10, start_date, end_date);
+  var chart      = new Chart(all_boxes, start_date, end_date);
   var boxes      = chart.boxes;
 
-  boxes[0].points_to(new Array(boxes[1], boxes[7])).is_this_complete(0.5).says("Testing...");
-  boxes[1].points_to(boxes[2]).is_this_complete(0.3).says("More arrows!");
-  boxes[5].points_to(boxes[9]).is_this_complete(0.9).says("Let's see how this looks");
+  boxes[0].points_to(new Array(boxes[1], boxes[2])).is_this_complete(0.5).says("Testing...");
+  // boxes[1].points_to(boxes[2]).is_this_complete(0.3).says("More arrows!");
+  // boxes[5].points_to(boxes[9]).is_this_complete(0.9).says("Let's see how this looks");
 });
 
