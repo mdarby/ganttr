@@ -29,17 +29,17 @@ Date.prototype.toString = function(){
 
 Date.prototype.daysUntil = function(end_date){
   // The number of milliseconds in one day
-  var ONE_DAY = 1000 * 60 * 60 * 24
+  var ONE_DAY = 1000 * 60 * 60 * 24;
 
   // Convert both dates to milliseconds
-  var this_ms = this.getTime()
-  var end_date_ms = end_date.getTime()
+  var this_ms = this.getTime();
+  var end_date_ms = end_date.getTime();
 
   // Calculate the difference in milliseconds
-  var difference_ms = Math.abs(this_ms - end_date_ms)
+  var difference_ms = Math.abs(this_ms - end_date_ms);
 
   // Convert back to days and return
-  return Math.round(difference_ms/ONE_DAY)
+  return Math.round(difference_ms/ONE_DAY);
 }
 
 Date.prototype.monthsUntil = function(end_date){
@@ -87,7 +87,7 @@ Chart.prototype.appendBox = function(box){
 }
 
 Chart.prototype.numBoxes = function(){
-  return this.boxes.length
+  return this.boxes.length;
 }
 
 
@@ -153,7 +153,7 @@ function Month(x, y, w, label, canvas){
   this.y       = y;
   this.w       = w;
   this.label   = label;
-  this.label_x = this.x + (this.w / 2)
+  this.label_x = this.x + (this.w / 2);
   this.canvas  = canvas;
 
   this.draw();
