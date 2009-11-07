@@ -1,4 +1,5 @@
 // Default class properties
+Chart.height    = 500;
 Box.height      = 12;
 Box.offset      = Box.height * 2;
 Box.radius      = Box.height / 6;
@@ -68,6 +69,10 @@ Date.prototype.peek = function(label){
   alert(label +": "+ this.formattedString());
 }
 
+Date.prototype.equals = function(other){
+  return this.formattedString() == other.formattedString();
+}
+
 
 
 // Chart class
@@ -75,7 +80,7 @@ function Chart(start_date, end_date){
   this.start_date = start_date;
   this.end_date   = end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
-  this.height     = (Timeline.height * 3) + (this.numBoxes * (Box.height + Box.offset));
+  this.height     = Chart.height;
   this.width      = this.num_days * Timeline.height;
   this.canvas     = Raphael(0, 0, this.width, this.height);
   this.timeline   = new Timeline(this);
@@ -99,8 +104,15 @@ function Timeline(chart){
   this.end_date   = this.chart.end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.canvas     = this.chart.canvas;
-  this.months     = this.drawMonths();
-  this.days       = this.drawDays();
+
+  this.draw();
+}
+
+Timeline.prototype.draw = function(){
+  this.months = this.drawMonths();
+  this.days   = this.drawDays();
+
+  this.drawDayGrid();
 }
 
 Timeline.prototype.drawMonths = function(){
@@ -139,10 +151,45 @@ Timeline.prototype.dayAt = function(date){
   for(i=0; i<this.days.length; i++){
     var curr_day = this.days[i].date;
 
-    if(curr_day.formattedString() == date.formattedString()){
+    if(curr_day.equals(date)){
       return this.days[i];
     }
   }
+}
+
+Timeline.prototype.drawDayGrid = function(){
+  for(i=0; i<this.num_days; i++){
+    var day = this.days[i];
+    var x   = day.topLeft().x;
+    var y   = Timeline.height * 2;
+    var w   = Timeline.height;
+    var h   = this.chart.canvas.height;
+
+    if(day.date.equals(Date.today())){
+      this.chart.canvas.rect(x, y, w, h).attr({fill: "#d1f3ff", stroke: 0}).toBack;
+    }
+
+    new GridLine(x, this.chart);
+  }
+}
+
+
+
+// GridLine class
+function GridLine(x, chart){
+  this.x      = x;
+  this.chart  = chart;
+  this.canvas = this.chart.canvas;
+
+  this.draw();
+}
+
+GridLine.prototype.draw = function(){
+  var from  = new Point(this.x, Timeline.height * 2);
+  var to    = new Point(this.x, this.canvas.height);
+  var shape = new Line(from, to, this.canvas).shape;
+
+  shape.attr({"stroke-dasharray": ". ", "stroke-opacity": 0.4});
 }
 
 
@@ -221,7 +268,7 @@ Point.prototype.draw = function(canvas){
   canvas.text(this.x, (this.y - 10), "("+ this +")").attr({fill: "red"});
   canvas.circle(this.x, this.y, 3).attr({fill: "red", stroke: "#FFF"});
 
-
+  return this;
 }
 
 
@@ -306,13 +353,9 @@ function Arrow(start_box, end_box, canvas){
   this.to     = end_box;
   this.canvas = canvas;
 
-  var str = "";
+  new Line(this.from.bottomLeftPoint(), this.crux_point(), this.canvas);
+  new Line(this.crux_point(), this.to.leftCenterPoint(), this.canvas);
 
-  str = str.concat("M"+ this.from.bottomLeftPoint());
-  str = str.concat("L"+ this.crux_point());
-  str = str.concat("L"+ this.to.leftCenterPoint());
-
-  this.canvas.path(str).toBack();
   this.nib();
 }
 
@@ -336,6 +379,24 @@ Arrow.prototype.nib = function(){
   str = str.concat("L"+ tip);
 
   this.canvas.path(str).attr({fill: "#000"}).toBack();
+}
+
+
+
+function Line(from, to, canvas){
+  this.from   = from;
+  this.to     = to;
+  this.canvas = canvas;
+
+  this.draw();
+}
+
+Line.prototype.draw = function(){
+  var str = "";
+  str     = str.concat("M"+ this.from);
+  str     = str.concat("L"+ this.to);
+
+  this.shape = this.canvas.path(str);
 }
 
 
