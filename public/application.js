@@ -1,11 +1,10 @@
-// Constants
-var box_height    = 12;
-var box_offset    = box_height * 2;
-var small_offset  = box_height;
-var box_radius    = box_height / 6;
-var timeline_size = 20;
-var box_color     = "#939393";
-var box_gradient  = "0-"+ box_color +"-#FFF";
+// Default class properties
+Box.height      = 12;
+Box.offset      = Box.height * 2;
+Box.radius      = Box.height / 6;
+Box.color       = "#939393";
+Box.gradient    = "0-"+ Box.color +"-#FFF";
+Timeline.height = 20;
 
 
 
@@ -61,12 +60,12 @@ Date.prototype.monthsUntil = function(end_date){
   return number;
 }
 
-Date.prototype.fullString = function(){
+Date.prototype.formattedString = function(){
   return this.getMonth() +"/"+ this.getDate() +"/"+ this.getFullYear();
 }
 
 Date.prototype.peek = function(label){
-  alert(label +": "+ this.fullString());
+  alert(label +": "+ this.formattedString());
 }
 
 
@@ -76,18 +75,18 @@ function Chart(start_date, end_date){
   this.start_date = start_date;
   this.end_date   = end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
-  this.height     = (timeline_size * 3) + (this.num_boxes * (box_height + box_offset));
-  this.width      = this.num_days * timeline_size;
+  this.height     = (Timeline.height * 3) + (this.numBoxes * (Box.height + Box.offset));
+  this.width      = this.num_days * Timeline.height;
   this.canvas     = Raphael(0, 0, this.width, this.height);
   this.timeline   = new Timeline(this);
   this.boxes      = new Array();
 }
 
-Chart.prototype.append_box = function(box){
+Chart.prototype.appendBox = function(box){
   this.boxes[this.boxes.length] = box;
 }
 
-Chart.prototype.num_boxes = function(){
+Chart.prototype.numBoxes = function(){
   return this.boxes.length
 }
 
@@ -100,11 +99,11 @@ function Timeline(chart){
   this.end_date   = this.chart.end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.canvas     = this.chart.canvas;
-  this.months     = this.draw_months();
-  this.days       = this.draw_days();
+  this.months     = this.drawMonths();
+  this.days       = this.drawDays();
 }
 
-Timeline.prototype.draw_months = function(){
+Timeline.prototype.drawMonths = function(){
   var months      = new Array();
   var start_date  = this.chart.start_date;
   var end_date    = this.chart.end_date;
@@ -115,18 +114,18 @@ Timeline.prototype.draw_months = function(){
     var curr_date = start_date.add(i).months();
     var x = (i * month_width);
 
-    months[i] = new Month(x, timeline_size, month_width, curr_date, this.canvas);
+    months[i] = new Month(x, Timeline.height, month_width, curr_date, this.canvas);
   }
 
   return months;
 }
 
-Timeline.prototype.draw_days = function(){
+Timeline.prototype.drawDays = function(){
   var days = new Array();
-  var y    = timeline_size;
+  var y    = Timeline.height;
 
   for(i=0; i<this.num_days; i++){
-    var x = i * timeline_size;
+    var x = i * Timeline.height;
     var s = this.start_date.clone();
     var d = s.add(i).days();
 
@@ -136,11 +135,11 @@ Timeline.prototype.draw_days = function(){
   return days;
 }
 
-Timeline.prototype.day_at = function(date){
+Timeline.prototype.dayAt = function(date){
   for(i=0; i<this.days.length; i++){
     var curr_day = this.days[i].date;
 
-    if(curr_day.fullString() == date.fullString()){
+    if(curr_day.formattedString() == date.formattedString()){
       return this.days[i];
     }
   }
@@ -161,7 +160,7 @@ function Month(x, y, w, label, canvas){
 }
 
 Month.prototype.draw = function(){
-  this.canvas.rect(this.x, -1, this.w, timeline_size + 1).attr({fill: "#BD0000", stroke: "#FFF"});
+  this.canvas.rect(this.x, -1, this.w, Timeline.height + 1).attr({fill: "#BD0000", stroke: "#FFF"});
   this.canvas.text(this.label_x, this.y / 2, this.label).attr({fill: "#FFF"});
 }
 
@@ -180,23 +179,23 @@ function Day(x, y, date, canvas){
   this.draw();
 }
 
-Day.prototype.center_point = function(){
-  var x = this.x + (timeline_size / 2);
-  var y = this.y + (timeline_size / 2) + 2;
+Day.prototype.centerPoint = function(){
+  var x = this.x + (Timeline.height / 2);
+  var y = this.y + (Timeline.height / 2) + 2;
 
   return new Point(x,y);
 }
 
 Day.prototype.draw = function(){
-  var p = this.center_point();
+  var p = this.centerPoint();
 
-  this.shape = this.canvas.rect(this.x, this.y, timeline_size, timeline_size).attr({fill: "#efefef"});
+  this.shape = this.canvas.rect(this.x, this.y, Timeline.height, Timeline.height).attr({fill: "#efefef"});
   this.canvas.text(p.x, p.y, this.label);
 
 
 }
 
-Day.prototype.top_left = function(){
+Day.prototype.topLeft = function(){
   return new Point(this.x, this.y);
 }
 
@@ -232,36 +231,36 @@ function Box(start_date, end_date, chart){
   this.start_date = start_date;
   this.end_date   = end_date;
   this.chart      = chart;
-  this.start_day  = chart.timeline.day_at(start_date);
-  this.end_day    = chart.timeline.day_at(end_date);
-  this.x          = this.start_day.top_left().x;
-  this.y          = (timeline_size * 3) + (box_offset * this.chart.num_boxes());
-  this.w          = (start_date.daysUntil(end_date) * timeline_size) + timeline_size;
-  this.h          = box_height;
+  this.start_day  = chart.timeline.dayAt(start_date);
+  this.end_day    = chart.timeline.dayAt(end_date);
+  this.x          = this.start_day.topLeft().x;
+  this.y          = (Timeline.height * 3) + (Box.offset * this.chart.numBoxes());
+  this.w          = (start_date.daysUntil(end_date) * Timeline.height) + Timeline.height;
+  this.h          = Box.height;
   this.canvas     = chart.canvas;
-  this.shape      = this.canvas.rect(this.x, this.y, this.w, this.h, box_radius);
+  this.shape      = this.canvas.rect(this.x, this.y, this.w, this.h, Box.radius);
 
-  this.shape.attr({fill: box_color, stroke: "#999"});
+  this.shape.attr({fill: Box.color, stroke: "#999"});
 
-  this.chart.append_box(this);
+  this.chart.appendBox(this);
 }
 
-Box.prototype.bottom_left_point = function(){
-  var x = this.x + small_offset;
+Box.prototype.bottomLeftPoint = function(){
+  var x = this.x + Box.height;
   var y = this.y + this.shape.getBBox().height;
 
   return new Point(x,y);
 }
 
-Box.prototype.left_center_point = function(){
+Box.prototype.leftCenterPoint = function(){
   var y = this.y + (this.shape.getBBox().height / 2);
 
   return new Point(this.x, y);
 }
 
-Box.prototype.right_center_point = function(){
+Box.prototype.rightCenterPoint = function(){
   var x = this.x + this.shape.getBBox().width;
-  var y = this.left_center_point().y;
+  var y = this.leftCenterPoint().y;
 
   return new Point(x, y);
 }
@@ -279,22 +278,22 @@ Box.prototype.points_to = function(arr){
 }
 
 Box.prototype.says = function(text){
-  var p      = this.right_center_point();
+  var p      = this.rightCenterPoint();
   var t      = this.shape.paper.text(p.x, p.y, text);
-  var offset = (t.getBBox().width / 2) + small_offset;
+  var offset = (t.getBBox().width / 2) + Box.height;
 
   t.translate(offset, 0).attr({fill: "#000"}).toFront;
 
   return this;
 }
 
-Box.prototype.is_this_complete = function(percentage){
+Box.prototype.isThisComplete = function(percentage){
   var x = this.x + 2;
   var y = this.y + 2;
-  var h = box_height - 4;
+  var h = Box.height - 4;
   var w = this.shape.getBBox().width * percentage;
 
-  this.shape.paper.rect(x, y, w, h, box_radius).attr({gradient: box_gradient, "stroke-width": 0}).toFront();
+  this.shape.paper.rect(x, y, w, h, Box.radius).attr({gradient: Box.gradient, "stroke-width": 0}).toFront();
 
   return this;
 }
@@ -309,23 +308,23 @@ function Arrow(start_box, end_box, canvas){
 
   var str = "";
 
-  str = str.concat("M"+ this.from.bottom_left_point());
+  str = str.concat("M"+ this.from.bottomLeftPoint());
   str = str.concat("L"+ this.crux_point());
-  str = str.concat("L"+ this.to.left_center_point());
+  str = str.concat("L"+ this.to.leftCenterPoint());
 
   this.canvas.path(str).toBack();
   this.nib();
 }
 
 Arrow.prototype.crux_point = function(){
-  var x = this.from.bottom_left_point().x;
-  var y = this.to.left_center_point().y;
+  var x = this.from.bottomLeftPoint().x;
+  var y = this.to.leftCenterPoint().y;
 
   return new Point(x, y);
 }
 
 Arrow.prototype.nib = function(){
-  var point  = this.to.left_center_point();
+  var point  = this.to.leftCenterPoint();
   var str    = "";
   var tip    = point.shift(-2, 0);
   var top    = tip.shift(-3, -3);
@@ -362,13 +361,13 @@ $(document).ready(function(){
   var chart      = new Chart(start_date, end_date);
 
   var b1 = new Box(box1[0], box1[1], chart);
-  b1.is_this_complete(0.9).says("ASDF");
+  b1.isThisComplete(0.9).says("ASDF");
 
   var b2 = new Box(box2[0], box2[1], chart);
-  b2.is_this_complete(0.4).says("Working?");
+  b2.isThisComplete(0.4).says("Working?");
 
   var b3 = new Box(box3[0], box3[1], chart);
-  b3.is_this_complete(0.8).says("Whoa...");
+  b3.isThisComplete(0.8).says("Whoa...");
 
   b1.points_to(b2);
   b2.points_to(b3);
