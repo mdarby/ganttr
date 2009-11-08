@@ -3,14 +3,13 @@ Box.height           = 12;
 Box.offset           = Box.height * 2;
 Box.radius           = Box.height / 6;
 Box.color            = "#939393";
+Box.area_height      = Box.height + Box.offset;
 
-Timeline.height      = 20;
+Timeline.size        = 20;
+Timeline.area_height = Timeline.size * 2;
 Timeline.today_color = "#d1f3ff";
 
 CompletionBox.color  = "#DFDFDF";
-
-
-// Need a way to redraw gridlines, etc after boxes are added...
 
 
 
@@ -85,8 +84,8 @@ function Chart(start_date, end_date){
   this.start_date = start_date;
   this.end_date   = end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
-  this.height     = Timeline.height * 3;
-  this.width      = this.num_days * Timeline.height;
+  this.height     = Timeline.area_height;
+  this.width      = this.num_days * Timeline.size;
   this.canvas     = Raphael(0, 0, this.width, this.height);
   this.timeline   = new Timeline(this);
   this.boxes      = new Array();
@@ -102,8 +101,9 @@ Chart.prototype.numBoxes = function(){
 }
 
 Chart.prototype.resize = function(){
-  this.height += (Box.height + Box.offset);
+  this.height += Box.area_height;
   this.canvas.setSize(this.width, this.height);
+  this.timeline.drawDayGrid();
 }
 
 
@@ -115,7 +115,7 @@ function Timeline(chart){
   this.end_date   = this.chart.end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.canvas     = this.chart.canvas;
-
+  this.gridlines  = new Array();
   this.draw();
 }
 
@@ -134,10 +134,11 @@ Timeline.prototype.drawMonths = function(){
   var month_width = this.chart.width / num_months;
 
   for(i=0; i<num_months; i++){
-    var curr_date = start_date.add(i).months();
+    var s = start_date.clone();
+    var c = s.add(i).months();
     var x = (i * month_width);
 
-    months.push(new Month(x, Timeline.height, month_width, curr_date, this.canvas));
+    months.push(new Month(x, Timeline.size, month_width, c, this.canvas));
   }
 
   return months;
@@ -145,10 +146,10 @@ Timeline.prototype.drawMonths = function(){
 
 Timeline.prototype.drawDays = function(){
   var days = new Array();
-  var y    = Timeline.height;
+  var y    = Timeline.size;
 
   for(i=0; i<this.num_days; i++){
-    var x = i * Timeline.height;
+    var x = i * Timeline.size;
     var s = this.start_date.clone();
     var d = s.add(i).days();
 
@@ -172,24 +173,39 @@ Timeline.prototype.drawDayGrid = function(){
   for(i=0; i<this.num_days; i++){
     var day = this.days[i];
     var x   = day.topLeft().x;
-    var y   = Timeline.height * 2;
-    var w   = Timeline.height;
-    var h   = this.chart.canvas.height;
+    var y   = this.chart.height - Box.area_height;
 
     // Highlight the current day
     if(day.date.equals(Date.today())){
-      this.chart.canvas.rect(x, y, w, h).attr({fill: Timeline.today_color, stroke: 0, opacity: 0.7}).toBack;
+      this.today_box = new TodayBox(x, y, this.chart);
     }
 
-    new GridLine(x, this.chart);
+    this.gridlines.push(new GridLine(x, y, this.chart));
   }
 }
 
 
 
-// GridLine class
-function GridLine(x, chart){
+function TodayBox(x, y, chart){
   this.x      = x;
+  this.y      = y;
+  this.chart  = chart;
+  this.canvas = this.chart.canvas;
+
+  this.draw();
+}
+
+TodayBox.prototype.draw = function(){
+  this.shape = this.canvas.rect(this.x, this.y, Timeline.size, this.chart.height);
+  this.shape.attr({fill: Timeline.today_color, stroke: 0, opacity: 0.7}).toBack();
+}
+
+
+
+// GridLine class
+function GridLine(x, y, chart){
+  this.x      = x;
+  this.y      = y;
   this.chart  = chart;
   this.canvas = this.chart.canvas;
 
@@ -197,11 +213,11 @@ function GridLine(x, chart){
 }
 
 GridLine.prototype.draw = function(){
-  var from  = new Point(this.x, Timeline.height * 2);
-  var to    = new Point(this.x, this.canvas.height);
-  var shape = new Line(from, to, this.canvas).shape;
+  var from  = new Point(this.x, this.y);
+  var to    = new Point(this.x, this.y + Box.area_height);
 
-  shape.attr({"stroke-dasharray": ". ", "stroke-opacity": 0.4});
+  this.shape = new Line(from, to, this.canvas).shape;
+  this.shape.attr({"stroke-dasharray": ". ", "stroke-opacity": 0.3}).toBack();
 }
 
 
@@ -219,7 +235,7 @@ function Month(x, y, w, label, canvas){
 }
 
 Month.prototype.draw = function(){
-  this.canvas.rect(this.x, -1, this.w, Timeline.height + 1).attr({fill: "#BD0000", stroke: "#FFF"});
+  this.canvas.rect(this.x, -1, this.w, Timeline.size + 1).attr({fill: "#BD0000", stroke: "#FFF"});
   this.canvas.text(this.label_x, this.y / 2, this.label).attr({fill: "#FFF"});
 }
 
@@ -239,8 +255,8 @@ function Day(x, y, date, canvas){
 }
 
 Day.prototype.centerPoint = function(){
-  var x = this.x + (Timeline.height / 2);
-  var y = this.y + (Timeline.height / 2) + 2;
+  var x = this.x + (Timeline.size / 2);
+  var y = this.y + (Timeline.size / 2) + 2;
 
   return new Point(x,y);
 }
@@ -248,7 +264,7 @@ Day.prototype.centerPoint = function(){
 Day.prototype.draw = function(){
   var p = this.centerPoint();
 
-  this.shape = this.canvas.rect(this.x, this.y, Timeline.height, Timeline.height).attr({fill: "#efefef"});
+  this.shape = this.canvas.rect(this.x, this.y, Timeline.size, Timeline.size).attr({fill: "#efefef"});
   this.canvas.text(p.x, p.y, this.label);
 
 
@@ -294,8 +310,8 @@ function Box(start_date, end_date, chart){
   this.end_day    = this.chart.timeline.dayAt(end_date);
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.x          = this.start_day.topLeft().x;
-  this.y          = (Timeline.height * 3) + (Box.offset * this.chart.numBoxes());
-  this.w          = (this.start_date.daysUntil(this.end_date) * Timeline.height) + Timeline.height;
+  this.y          = (Timeline.size * 3) + (Box.offset * this.chart.numBoxes());
+  this.w          = (this.start_date.daysUntil(this.end_date) * Timeline.size) + Timeline.size;
   this.h          = Box.height;
   this.canvas     = this.chart.canvas;
   this.shape      = this.draw();
@@ -338,7 +354,7 @@ Box.prototype.pointsTo = function(arr){
   }
 
   for(i=0; i < arr.length; i++){
-    new Arrow(this, arr[i], this.shape.paper);
+    new Arrow(this, arr[i], this.canvas);
   }
 
   return this;
@@ -346,10 +362,10 @@ Box.prototype.pointsTo = function(arr){
 
 Box.prototype.says = function(text){
   var p      = this.rightCenterPoint();
-  var t      = this.shape.paper.text(p.x, p.y, text);
+  var t      = this.canvas.text(p.x, p.y, text);
   var offset = (t.getBBox().width / 2) + Box.height;
 
-  t.translate(offset, 0).attr({fill: "#000"}).toFront;
+  t.translate(offset, 0).attr({fill: "#000"}).toFront();
 
   return this;
 }
@@ -387,12 +403,17 @@ function CompletionBox(box){
 }
 
 CompletionBox.prototype.draw = function(){
-  var x = this.box.x + 1;
-  var y = this.box.y + 1;
-  var h = Box.height - 2;
-  var w = (this.box.daysCompleted() * Timeline.height) - 2;
+  var num_days = this.box.daysCompleted();
 
-  this.canvas.rect(x, y, w, h, Box.radius).attr({fill: CompletionBox.color, "stroke-width": 0}).toFront();
+  if(num_days > 0){
+    var x = this.box.x + 1;
+    var y = this.box.y + 1;
+    var h = Box.height - 2;
+    var w = (num_days * Timeline.size) - 2;
+
+    this.shape = this.canvas.rect(x, y, w, h, Box.radius)
+    this.shape.attr({fill: CompletionBox.color, "stroke-width": 0}).toFront();
+  }
 
   return this;
 }
@@ -408,7 +429,7 @@ function Arrow(start_box, end_box, canvas){
   new Line(this.from.bottomLeftPoint(), this.cruxPoint(), this.canvas);
   new Line(this.cruxPoint(), this.to.leftCenterPoint(), this.canvas);
 
-  this.nib();
+  this.drawNib();
 }
 
 Arrow.prototype.cruxPoint = function(){
@@ -418,19 +439,35 @@ Arrow.prototype.cruxPoint = function(){
   return new Point(x, y);
 }
 
-Arrow.prototype.nib = function(){
+Arrow.prototype.drawNib = function(){
   var point  = this.to.leftCenterPoint();
-  var str    = "";
   var tip    = point.shift(-2, 0);
   var top    = tip.shift(-3, -3);
   var bottom = tip.shift(-3, 3);
 
-  str = str.concat("M"+ tip);
-  str = str.concat("L"+ top);
-  str = str.concat("L"+ bottom);
-  str = str.concat("L"+ tip);
+  var nib = new Triangle(tip, top, bottom, this.canvas);
+  nib.shape.attr({fill: "#000"}).toBack();
+}
 
-  this.canvas.path(str).attr({fill: "#000"}).toBack();
+
+
+function Triangle(point1, point2, point3, canvas){
+  this.point1 = point1;
+  this.point2 = point2;
+  this.point3 = point3;
+  this.canvas = canvas;
+
+  this.draw();
+}
+
+Triangle.prototype.draw = function(){
+  var str = "";
+  str     = str.concat("M"+ this.point1);
+  str     = str.concat("L"+ this.point2);
+  str     = str.concat("L"+ this.point3);
+  str     = str.concat("L"+ this.point1);
+
+  this.shape = this.canvas.path(str);
 }
 
 
@@ -469,21 +506,22 @@ $(document).ready(function(){
   var box1       = new Array(Date.parse("Nov 3, 2009"), Date.parse("Nov 12, 2009"));
   var box2       = new Array(Date.parse("Nov 5, 2009"), Date.parse("Nov 17, 2009"));
   var box3       = new Array(Date.parse("Nov 15, 2009"), Date.parse("Nov 23, 2009"));
+  var box4       = new Array(Date.parse("Nov 17, 2009"), Date.parse("Nov 25, 2009"));
+  var box5       = new Array(Date.parse("Nov 17, 2009"), Date.parse("Dec 5, 2009"));
 
   var start_date = Date.parse("Nov 1, 2009");
-  var end_date   = Date.parse("Nov 30, 2009");
+  var end_date   = Date.parse("Dec 31, 2009");
   var chart      = new Chart(start_date, end_date);
 
-  var b1 = new Box(box1[0], box1[1], chart);
-  b1.says("ASDF");
-
-  var b2 = new Box(box2[0], box2[1], chart);
-  b2.says("Working?");
-
-  var b3 = new Box(box3[0], box3[1], chart);
-  b3.says("Whoa...");
+  var b1 = new Box(box1[0], box1[1], chart).says("ASDF");
+  var b2 = new Box(box2[0], box2[1], chart).says("Working?");
+  var b3 = new Box(box3[0], box3[1], chart).says("Whoa...");
+  var b4 = new Box(box4[0], box4[1], chart).says("Hrm");
+  var b5 = new Box(box5[0], box5[1], chart).says("Long!");
 
   b1.pointsTo(b2);
   b2.pointsTo(b3);
-});
+  b3.pointsTo(b4);
+  b3.pointsTo(b5);
 
+});
