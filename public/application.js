@@ -1,11 +1,16 @@
 // Default class properties
-Chart.height    = 500;
-Box.height      = 12;
-Box.offset      = Box.height * 2;
-Box.radius      = Box.height / 6;
-Box.color       = "#939393";
-Box.gradient    = "0-"+ Box.color +"-#FFF";
-Timeline.height = 20;
+Box.height           = 12;
+Box.offset           = Box.height * 2;
+Box.radius           = Box.height / 6;
+Box.color            = "#939393";
+
+Timeline.height      = 20;
+Timeline.today_color = "#d1f3ff";
+
+CompletionBox.color  = "#DFDFDF";
+
+
+// Need a way to redraw gridlines, etc after boxes are added...
 
 
 
@@ -80,7 +85,7 @@ function Chart(start_date, end_date){
   this.start_date = start_date;
   this.end_date   = end_date;
   this.num_days   = this.start_date.daysUntil(this.end_date);
-  this.height     = Chart.height;
+  this.height     = Timeline.height * 3;
   this.width      = this.num_days * Timeline.height;
   this.canvas     = Raphael(0, 0, this.width, this.height);
   this.timeline   = new Timeline(this);
@@ -88,11 +93,17 @@ function Chart(start_date, end_date){
 }
 
 Chart.prototype.appendBox = function(box){
-  this.boxes[this.boxes.length] = box;
+  this.boxes.push(box);
+  this.resize();
 }
 
 Chart.prototype.numBoxes = function(){
   return this.boxes.length;
+}
+
+Chart.prototype.resize = function(){
+  this.height += (Box.height + Box.offset);
+  this.canvas.setSize(this.width, this.height);
 }
 
 
@@ -126,7 +137,7 @@ Timeline.prototype.drawMonths = function(){
     var curr_date = start_date.add(i).months();
     var x = (i * month_width);
 
-    months[i] = new Month(x, Timeline.height, month_width, curr_date, this.canvas);
+    months.push(new Month(x, Timeline.height, month_width, curr_date, this.canvas));
   }
 
   return months;
@@ -141,7 +152,7 @@ Timeline.prototype.drawDays = function(){
     var s = this.start_date.clone();
     var d = s.add(i).days();
 
-    days[i] = new Day(x, y, d, this.canvas);
+    days.push(new Day(x, y, d, this.canvas));
   }
 
   return days;
@@ -165,8 +176,9 @@ Timeline.prototype.drawDayGrid = function(){
     var w   = Timeline.height;
     var h   = this.chart.canvas.height;
 
+    // Highlight the current day
     if(day.date.equals(Date.today())){
-      this.chart.canvas.rect(x, y, w, h).attr({fill: "#d1f3ff", stroke: 0}).toBack;
+      this.chart.canvas.rect(x, y, w, h).attr({fill: Timeline.today_color, stroke: 0, opacity: 0.7}).toBack;
     }
 
     new GridLine(x, this.chart);
@@ -278,18 +290,26 @@ function Box(start_date, end_date, chart){
   this.start_date = start_date;
   this.end_date   = end_date;
   this.chart      = chart;
-  this.start_day  = chart.timeline.dayAt(start_date);
-  this.end_day    = chart.timeline.dayAt(end_date);
+  this.start_day  = this.chart.timeline.dayAt(start_date);
+  this.end_day    = this.chart.timeline.dayAt(end_date);
+  this.num_days   = this.start_date.daysUntil(this.end_date);
   this.x          = this.start_day.topLeft().x;
   this.y          = (Timeline.height * 3) + (Box.offset * this.chart.numBoxes());
-  this.w          = (start_date.daysUntil(end_date) * Timeline.height) + Timeline.height;
+  this.w          = (this.start_date.daysUntil(this.end_date) * Timeline.height) + Timeline.height;
   this.h          = Box.height;
-  this.canvas     = chart.canvas;
-  this.shape      = this.canvas.rect(this.x, this.y, this.w, this.h, Box.radius);
+  this.canvas     = this.chart.canvas;
+  this.shape      = this.draw();
 
-  this.shape.attr({fill: Box.color, stroke: "#999"});
+  new CompletionBox(this);
 
   this.chart.appendBox(this);
+}
+
+Box.prototype.draw = function(){
+  var s = this.canvas.rect(this.x, this.y, this.w, this.h, Box.radius);
+  s.attr({fill: Box.color, stroke: "#999"});
+
+  return s;
 }
 
 Box.prototype.bottomLeftPoint = function(){
@@ -312,7 +332,7 @@ Box.prototype.rightCenterPoint = function(){
   return new Point(x, y);
 }
 
-Box.prototype.points_to = function(arr){
+Box.prototype.pointsTo = function(arr){
   if(arr.length == undefined){
     arr = new Array(arr);
   }
@@ -334,13 +354,45 @@ Box.prototype.says = function(text){
   return this;
 }
 
-Box.prototype.isThisComplete = function(percentage){
-  var x = this.x + 2;
-  var y = this.y + 2;
-  var h = Box.height - 4;
-  var w = this.shape.getBBox().width * percentage;
+Box.prototype.daysCompleted = function(){
+  var curr_date = Date.today();
 
-  this.shape.paper.rect(x, y, w, h, Box.radius).attr({gradient: Box.gradient, "stroke-width": 0}).toFront();
+  if(curr_date < this.start_date){
+    return 0;
+  }
+
+  if(curr_date > this.end_date){
+    return this.num_days;
+  }
+
+  for(i=0; i<this.num_days; i++){
+    var s = this.start_date.clone();
+    var d = s.add(i).days();
+
+    if(d.equals(curr_date)){
+      return i+1;
+    }
+  }
+
+}
+
+
+
+// CompletionBox class
+function CompletionBox(box){
+  this.box    = box;
+  this.canvas = this.box.canvas;
+
+  this.draw();
+}
+
+CompletionBox.prototype.draw = function(){
+  var x = this.box.x + 1;
+  var y = this.box.y + 1;
+  var h = Box.height - 2;
+  var w = (this.box.daysCompleted() * Timeline.height) - 2;
+
+  this.canvas.rect(x, y, w, h, Box.radius).attr({fill: CompletionBox.color, "stroke-width": 0}).toFront();
 
   return this;
 }
@@ -353,13 +405,13 @@ function Arrow(start_box, end_box, canvas){
   this.to     = end_box;
   this.canvas = canvas;
 
-  new Line(this.from.bottomLeftPoint(), this.crux_point(), this.canvas);
-  new Line(this.crux_point(), this.to.leftCenterPoint(), this.canvas);
+  new Line(this.from.bottomLeftPoint(), this.cruxPoint(), this.canvas);
+  new Line(this.cruxPoint(), this.to.leftCenterPoint(), this.canvas);
 
   this.nib();
 }
 
-Arrow.prototype.crux_point = function(){
+Arrow.prototype.cruxPoint = function(){
   var x = this.from.bottomLeftPoint().x;
   var y = this.to.leftCenterPoint().y;
 
@@ -383,6 +435,7 @@ Arrow.prototype.nib = function(){
 
 
 
+// Line class
 function Line(from, to, canvas){
   this.from   = from;
   this.to     = to;
@@ -414,7 +467,7 @@ function interrogate(obj){
 
 $(document).ready(function(){
   var box1       = new Array(Date.parse("Nov 3, 2009"), Date.parse("Nov 12, 2009"));
-  var box2       = new Array(Date.parse("Nov 10, 2009"), Date.parse("Nov 17, 2009"));
+  var box2       = new Array(Date.parse("Nov 5, 2009"), Date.parse("Nov 17, 2009"));
   var box3       = new Array(Date.parse("Nov 15, 2009"), Date.parse("Nov 23, 2009"));
 
   var start_date = Date.parse("Nov 1, 2009");
@@ -422,15 +475,15 @@ $(document).ready(function(){
   var chart      = new Chart(start_date, end_date);
 
   var b1 = new Box(box1[0], box1[1], chart);
-  b1.isThisComplete(0.9).says("ASDF");
+  b1.says("ASDF");
 
   var b2 = new Box(box2[0], box2[1], chart);
-  b2.isThisComplete(0.4).says("Working?");
+  b2.says("Working?");
 
   var b3 = new Box(box3[0], box3[1], chart);
-  b3.isThisComplete(0.8).says("Whoa...");
+  b3.says("Whoa...");
 
-  b1.points_to(b2);
-  b2.points_to(b3);
+  b1.pointsTo(b2);
+  b2.pointsTo(b3);
 });
 
