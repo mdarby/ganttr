@@ -329,7 +329,7 @@ Box.prototype.draw = function(){
 }
 
 Box.prototype.bottomLeftPoint = function(){
-  var x = this.x + Box.height;
+  var x = this.x + (Timeline.size / 2);
   var y = this.y + this.shape.getBBox().height;
 
   return new Point(x,y);
@@ -363,7 +363,7 @@ Box.prototype.pointsTo = function(arr){
 Box.prototype.says = function(text){
   var p      = this.rightCenterPoint();
   var t      = this.canvas.text(p.x, p.y, text);
-  var offset = (t.getBBox().width / 2) + Box.height;
+  var offset = (t.getBBox().width / 2) + (Box.height / 2);
 
   t.translate(offset, 0).attr({fill: "#000"}).toFront();
 
@@ -442,30 +442,50 @@ Arrow.prototype.cruxPoint = function(){
 Arrow.prototype.drawNib = function(){
   var point  = this.to.leftCenterPoint();
   var tip    = point.shift(-2, 0);
-  var top    = tip.shift(-3, -3);
-  var bottom = tip.shift(-3, 3);
 
-  var nib = new Triangle(tip, top, bottom, this.canvas);
+  var nib = new Triangle(tip, 3, "East", this.canvas);
   nib.shape.attr({fill: "#000"}).toBack();
 }
 
 
 
-function Triangle(point1, point2, point3, canvas){
-  this.point1 = point1;
-  this.point2 = point2;
-  this.point3 = point3;
-  this.canvas = canvas;
+function Triangle(tip, side, direction, canvas){
+  this.tip       = tip;
+  this.side      = side;
+  this.direction = direction;
+  this.canvas    = canvas;
 
   this.draw();
 }
 
+Triangle.prototype.triangulate = function(){
+  if(this.direction == "North"){
+    this.point2 = this.tip.shift((this.side * -1), this.side);
+    this.point3 = this.tip.shift(this.side, this.side);
+
+  } else if(this.direction == "East"){
+    this.point2 = this.tip.shift((this.side * -1), (this.side * -1));
+    this.point3 = this.tip.shift((this.side * -1), this.side);
+
+  } else if(this.direction == "South"){
+    this.point2 = this.tip.shift((this.side * -1), (this.side * -1));
+    this.point3 = this.tip.shift(this.side, (this.side * -1));
+
+  } else if(this.direction == "West"){
+    this.point2 = this.tip.shift(this.side, (this.side * -1));
+    this.point3 = this.tip.shift(this.side, this.side);
+
+  }
+}
+
 Triangle.prototype.draw = function(){
+  this.triangulate();
+
   var str = "";
-  str     = str.concat("M"+ this.point1);
+  str     = str.concat("M"+ this.tip);
   str     = str.concat("L"+ this.point2);
   str     = str.concat("L"+ this.point3);
-  str     = str.concat("L"+ this.point1);
+  str     = str.concat("L"+ this.tip);
 
   this.shape = this.canvas.path(str);
 }
@@ -508,6 +528,8 @@ $(document).ready(function(){
   var box3       = new Array(Date.parse("Nov 15, 2009"), Date.parse("Nov 23, 2009"));
   var box4       = new Array(Date.parse("Nov 17, 2009"), Date.parse("Nov 25, 2009"));
   var box5       = new Array(Date.parse("Nov 17, 2009"), Date.parse("Dec 5, 2009"));
+  var box6       = new Array(Date.parse("Dec 1, 2009"), Date.parse("Dec 14, 2009"));
+  var box7       = new Array(Date.parse("Dec 3, 2009"), Date.parse("Dec 9, 2009"));
 
   var start_date = Date.parse("Nov 1, 2009");
   var end_date   = Date.parse("Dec 31, 2009");
@@ -518,10 +540,13 @@ $(document).ready(function(){
   var b3 = new Box(box3[0], box3[1], chart).says("Whoa...");
   var b4 = new Box(box4[0], box4[1], chart).says("Hrm");
   var b5 = new Box(box5[0], box5[1], chart).says("Long!");
+  var b6 = new Box(box6[0], box6[1], chart).says("Oh yes!");
+  var b7 = new Box(box7[0], box7[1], chart).says("Something");
 
   b1.pointsTo(b2);
   b2.pointsTo(b3);
   b3.pointsTo(b4);
   b3.pointsTo(b5);
-
+  b5.pointsTo(b6);
+  b6.pointsTo(b7);
 });
