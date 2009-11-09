@@ -1,20 +1,35 @@
 // Default class properties
-Box.height           = 12;
-Box.color            = "#939393";
-Box.radius           = Box.height / 6;
-Box.area_height      = Box.height * 2;
+Box.height                 = 12;
+Box.color                  = "#939393";
+Box.radius                 = Box.height / 6;
+Box.area_height            = Box.height * 2;
 
-Timeline.size        = 20;
-Timeline.area_height = Timeline.size * 4;
-Timeline.today_color = "#D1F3FF";
+Timeline.size              = 20;
+Timeline.area_height       = (Timeline.size * 3) + (Box.height);
+Timeline.today_color       = "#D1F3FF";
 
-CompletionBox.color  = "#DFDFDF";
+TimelineKey.task_width     = 200;
+TimelineKey.resource_width = 200;
+TimelineKey.dates_width    = 100;
+TimelineKey.area_width     = 600;
+TimelineKey.header_color   = "#BD0000";
+
+CompletionBox.color        = "#DFDFDF";
 
 
 
 
 
-// Date class monkeypatch
+Raphael.el.centerPoint = function(){
+  var x = this.node.x.baseVal.value + (this.getBBox().width / 2);
+  var y = this.node.y.baseVal.value + (this.getBBox().height / 2);
+  return new Point(x,y);
+}
+
+
+
+
+
 Date.prototype.toString = function(){
   var months = new Array(12);
   months[0]  = "Jan";
@@ -86,7 +101,14 @@ Date.prototype.isWeekend = function(){
 
 
 
-// Arrow class
+Array.prototype.last = function(){
+  return this[this.length - 1];
+}
+
+
+
+
+
 function Arrow(start_box, end_box, canvas){
   this.from   = start_box;
   this.to     = end_box;
@@ -113,7 +135,7 @@ Arrow.prototype.cruxPoint = function(){
 Arrow.prototype.drawNib = function(direction){
   if(direction == "East"){
     var point = this.to.leftCenterPoint();
-    var tip   = point.shift(-2, 0);
+    var tip   = point.shift(-1, 0);
   } else if(direction == "South"){
     var point = this.to.topLeftPoint();
     var tip   = point.shift(0, -1);
@@ -127,22 +149,25 @@ Arrow.prototype.drawNib = function(direction){
 
 
 
-// Box class
-function Box(start_date, end_date, chart){
-  this.start_date = start_date;
-  this.end_date   = end_date;
-  this.chart      = chart;
-  this.start_day  = this.chart.timeline.dayAt(start_date);
-  this.end_day    = this.chart.timeline.dayAt(end_date);
-  this.num_days   = this.start_date.daysUntil(this.end_date);
-  this.x          = this.start_day.topLeft().x;
-  this.y          = Timeline.area_height + (Box.area_height * this.chart.numBoxes());
-  this.w          = (this.start_date.daysUntil(this.end_date) * Timeline.size) + Timeline.size;
-  this.h          = Box.height;
-  this.canvas     = this.chart.canvas;
-  this.shape      = this.draw();
+function Box(start_date, end_date, label, resource, chart){
+  this.start_date     = Date.parse(start_date);
+  this.end_date       = Date.parse(end_date);
+  this.chart          = chart;
+  this.label          = label;
+  this.resource       = resource;
+  this.start_day      = this.chart.timeline.dayAt(this.start_date);
+  this.end_day        = this.chart.timeline.dayAt(this.end_date);
+  this.num_days       = this.start_date.daysUntil(this.end_date);
+  this.x              = this.start_day.topLeft().x;
+  this.y              = Timeline.area_height + (Box.area_height * this.chart.numBoxes());
+  this.w              = (this.start_date.daysUntil(this.end_date) * Timeline.size) + Timeline.size;
+  this.h              = Box.height;
+  this.canvas         = this.chart.canvas;
+  this.shape          = this.draw();
+  this.completion_box = new CompletionBox(this);
 
-  new CompletionBox(this);
+  this.says(this.label);
+
 
   this.chart.appendBox(this);
 }
@@ -229,14 +254,14 @@ Box.prototype.daysCompleted = function(){
 
 
 
-// Chart class
 function Chart(start_date, end_date){
-  this.start_date = start_date;
-  this.end_date   = end_date;
+  this.start_date = Date.parse(start_date);
+  this.end_date   = Date.parse(end_date);
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.height     = Timeline.area_height;
   this.width      = this.num_days * Timeline.size;
-  this.canvas     = Raphael(0, 0, this.width, this.height);
+  this.canvas     = Raphael(TimelineKey.area_width, 0, this.width, this.height);
+  this.key        = new TimelineKey(this);
   this.timeline   = new Timeline(this);
   this.boxes      = new Array();
 }
@@ -254,13 +279,13 @@ Chart.prototype.resize = function(){
   this.height += Box.area_height;
   this.canvas.setSize(this.width, this.height);
   this.timeline.drawDayGrid();
+  this.key.resize();
 }
 
 
 
 
 
-// CompletionBox class
 function CompletionBox(box){
   this.box    = box;
   this.canvas = this.box.canvas;
@@ -288,7 +313,6 @@ CompletionBox.prototype.draw = function(){
 
 
 
-// Day class
 function Day(x, y, label, date, canvas){
   this.x      = x;
   this.y      = y;
@@ -336,7 +360,6 @@ Day.prototype.topLeft = function(){
 
 
 
-// GridLine class
 function GridLine(x, y, chart){
   this.x      = x;
   this.y      = y;
@@ -358,7 +381,6 @@ GridLine.prototype.draw = function(){
 
 
 
-// Line class
 function Line(from, to, canvas){
   this.from   = from;
   this.to     = to;
@@ -379,7 +401,6 @@ Line.prototype.draw = function(){
 
 
 
-// Month class
 function Month(x, y, w, label, canvas){
   this.x       = x;
   this.y       = y;
@@ -392,7 +413,7 @@ function Month(x, y, w, label, canvas){
 }
 
 Month.prototype.draw = function(){
-  this.canvas.rect(this.x, -1, this.w, Timeline.size + 1).attr({fill: "#BD0000", stroke: "#FFF"});
+  this.canvas.rect(this.x, -1, this.w, Timeline.size + 1).attr({fill: "#BD0000", stroke: "#000"});
   this.canvas.text(this.label_x, this.y / 2, this.label).attr({fill: "#FFF"});
 }
 
@@ -400,7 +421,6 @@ Month.prototype.draw = function(){
 
 
 
-// Point class
 function Point(x,y){
   this.x = parseInt(x);
   this.y = parseInt(y);
@@ -427,7 +447,6 @@ Point.prototype.draw = function(canvas){
 
 
 
-// Timeline class
 function Timeline(chart){
   this.chart      = chart;
   this.start_date = this.chart.start_date;
@@ -521,6 +540,125 @@ Timeline.prototype.drawDateBoxes = function(){
 
 
 
+function TimelineKey(chart){
+  this.chart  = chart;
+  this.height = this.chart.height;
+  this.width  = TimelineKey.area_width;
+  this.canvas = new Raphael(0, 0, this.width, this.height);
+  this.rows   = new Array();
+
+  this.resource_x   = (TimelineKey.task_width);
+  this.start_date_x = (this.resource_x + (TimelineKey.dates_width * 2));
+  this.end_date_x   = (this.start_date_x + TimelineKey.dates_width);
+
+  this.draw();
+}
+
+TimelineKey.prototype.draw = function(){
+  this.drawTheAbyss();
+  this.drawHeaders();
+}
+
+TimelineKey.prototype.drawTheAbyss = function(){
+  this.abyss = this.canvas.rect(0, 0, TimelineKey.area_width, (Timeline.size * 2)).attr({fill: "#DDD", stroke: 0});
+}
+
+TimelineKey.prototype.drawHeaders = function(){
+  var y = Timeline.size * 2;
+
+  this.task_call       = new KeyHeader(0, y, TimelineKey.task_width, "Task", this.canvas);
+  this.resource_cell   = new KeyHeader(this.resource_x, y, TimelineKey.resource_width, "Resource", this.canvas);
+  this.start_date_cell = new KeyHeader(this.start_date_x, y, TimelineKey.dates_width, "Start Date", this.canvas);
+  this.end_date_cell   = new KeyHeader(this.end_date_x, y, TimelineKey.dates_width, "End Date", this.canvas);
+}
+
+TimelineKey.prototype.drawRow = function(){
+  var box = this.chart.boxes.last();
+  this.rows.push(new KeyRow(box, this));
+}
+
+TimelineKey.prototype.resize = function(){
+  this.height = this.chart.height;
+  this.canvas.setSize(this.width, this.height);
+  this.drawRow();
+}
+
+
+
+
+
+function KeyRow(box, key){
+  this.box    = box;
+  this.key    = key;
+  this.canvas = this.key.canvas;
+
+  this.draw();
+}
+
+KeyRow.prototype.draw = function(){
+  var y = (this.key.chart.numBoxes() * Box.area_height) + (Timeline.size * 2);
+
+  this.task_cell       = new KeyCell(0, y, TimelineKey.task_width, this.box.label, this.canvas);
+  this.resource_cell   = new KeyCell(this.key.resource_x, y, TimelineKey.resource_width, this.box.resource, this.canvas);
+  this.start_date_cell = new KeyCell(this.key.start_date_x, y, TimelineKey.dates_width, this.box.start_date.formattedString(), this.canvas);
+  this.end_date_cell   = new KeyCell(this.key.end_date_x, y, TimelineKey.dates_width, this.box.end_date.formattedString(), this.canvas);
+}
+
+
+
+
+
+function KeyHeader(x, y, w, label, canvas){
+  this.x      = x;
+  this.y      = y;
+  this.h      = Timeline.size;
+  this.w      = w;
+  this.l      = label;
+  this.canvas = canvas;
+
+  this.draw();
+}
+
+KeyHeader.prototype.draw = function(){
+  this.box = this.canvas.rect(this.x, this.y, this.w, this.h).attr("fill", TimelineKey.header_color);
+
+  var p = this.box.centerPoint();
+
+  this.label = this.canvas.text(p.x, p.y, this.l).attr("fill", "#FFF");
+}
+
+
+
+
+
+function KeyCell(x, y, w, label, canvas){
+  this.x      = x;
+  this.y      = y;
+  this.h      = Box.area_height;
+  this.w      = w;
+  this.l      = label;
+  this.canvas = canvas;
+
+  this.draw();
+}
+
+KeyCell.prototype.draw = function(){
+  this.box = this.canvas.rect(this.x, this.y, this.w, this.h);
+
+  // Draw the label
+  this.label = this.canvas.text(0, 0, this.l);
+
+  var x = this.x + (this.label.getBBox().width / 2) + 4;
+  var y = this.box.centerPoint().y + 1;
+
+  // Move the label to the correct location
+  this.label.translate(x, y);
+}
+
+
+
+
+
 function TodayBox(x, y, chart){
   this.x      = x;
   this.y      = y;
@@ -584,7 +722,6 @@ Triangle.prototype.draw = function(){
 
 
 
-// Helper function
 function interrogate(obj){
   var output = '';
   for(var m in obj){
@@ -598,29 +735,17 @@ function interrogate(obj){
 
 
 $(document).ready(function(){
-  var box1       = new Array(Date.parse("Nov 3, 2009"), Date.parse("Nov 12, 2009"));
-  var box2       = new Array(Date.parse("Nov 5, 2009"), Date.parse("Nov 17, 2009"));
-  var box3       = new Array(Date.parse("Nov 15, 2009"), Date.parse("Nov 23, 2009"));
-  var box4       = new Array(Date.parse("Nov 17, 2009"), Date.parse("Nov 25, 2009"));
-  var box5       = new Array(Date.parse("Nov 17, 2009"), Date.parse("Dec 5, 2009"));
-  var box6       = new Array(Date.parse("Dec 1, 2009"), Date.parse("Dec 14, 2009"));
-  var box7       = new Array(Date.parse("Dec 3, 2009"), Date.parse("Dec 9, 2009"));
-  var box8       = new Array(Date.parse("Dec 3, 2009"), Date.parse("Dec 12, 2009"));
-  var box9       = new Array(Date.parse("Dec 4, 2009"), Date.parse("Dec 15, 2009"));
+  var chart = new Chart("Nov 1, 2009", "Dec 31, 2009");
 
-  var start_date = Date.parse("Nov 1, 2009");
-  var end_date   = Date.parse("Dec 31, 2009");
-  var chart      = new Chart(start_date, end_date);
-
-  var b1         = new Box(box1[0], box1[1], chart).says("ASDF");
-  var b2         = new Box(box2[0], box2[1], chart).says("Working?");
-  var b3         = new Box(box3[0], box3[1], chart).says("Whoa...");
-  var b4         = new Box(box4[0], box4[1], chart).says("Hrm");
-  var b5         = new Box(box5[0], box5[1], chart).says("Long!");
-  var b6         = new Box(box6[0], box6[1], chart).says("Oh yes!");
-  var b7         = new Box(box7[0], box7[1], chart).says("Something");
-  var b8         = new Box(box8[0], box8[1], chart).says("Same Day");
-  var b9         = new Box(box9[0], box9[1], chart).says("Next Day");
+  var b1  = new Box("Nov 3, 2009", "Nov 12, 2009", "ASDF", "MD", chart);
+  var b2  = new Box("Nov 5, 2009", "Nov 17, 2009", "Working?", "GM", chart);
+  var b3  = new Box("Nov 15, 2009", "Nov 23, 2009", "Whoa...", "TM", chart);
+  var b4  = new Box("Nov 17, 2009", "Nov 25, 2009", "Hrm", "GG", chart);
+  var b5  = new Box("Nov 17, 2009", "Dec 5, 2009", "Long!", "KJ", chart);
+  var b6  = new Box("Dec 1, 2009", "Dec 14, 2009", "Oh yes!", "KH", chart);
+  var b7  = new Box("Dec 3, 2009", "Dec 9, 2009", "Something", "LS", chart);
+  var b8  = new Box("Dec 3, 2009", "Dec 12, 2009", "Same Day", "SS", chart);
+  var b9  = new Box("Dec 4, 2009", "Dec 15, 2009", "Next Day", "GD", chart);
 
   b1.pointsTo(b2);
   b2.pointsTo(b3);
