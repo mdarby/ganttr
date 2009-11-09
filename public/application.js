@@ -260,7 +260,7 @@ function Chart(start_date, end_date){
   this.num_days   = this.start_date.daysUntil(this.end_date);
   this.height     = Timeline.area_height;
   this.width      = this.num_days * Timeline.size;
-  this.canvas     = Raphael(TimelineKey.area_width, 0, this.width, this.height);
+  this.canvas     = Raphael(TimelineKey.area_width, 200, this.width, this.height);
   this.key        = new TimelineKey(this);
   this.timeline   = new Timeline(this);
   this.boxes      = new Array();
@@ -375,6 +375,78 @@ GridLine.prototype.draw = function(){
 
   this.shape = new Line(from, to, this.canvas).shape;
   this.shape.attr({"stroke-opacity": 0.06}).toBack();
+}
+
+
+
+
+
+function KeyCell(x, y, w, label, canvas){
+  this.x      = x;
+  this.y      = y;
+  this.h      = Box.area_height;
+  this.w      = w;
+  this.l      = label;
+  this.canvas = canvas;
+
+  this.draw();
+}
+
+KeyCell.prototype.draw = function(){
+  this.box = this.canvas.rect(this.x, this.y, this.w, this.h);
+
+  // Draw the label
+  this.label = this.canvas.text(0, 0, this.l);
+
+  var x = this.x + (this.label.getBBox().width / 2) + 4;
+  var y = this.box.centerPoint().y + 1;
+
+  // Move the label to the correct location
+  this.label.translate(x, y);
+}
+
+
+
+
+
+function KeyHeader(x, y, w, label, canvas){
+  this.x      = x;
+  this.y      = y;
+  this.h      = Timeline.size;
+  this.w      = w;
+  this.l      = label;
+  this.canvas = canvas;
+
+  this.draw();
+}
+
+KeyHeader.prototype.draw = function(){
+  this.box = this.canvas.rect(this.x, this.y, this.w, this.h).attr("fill", TimelineKey.header_color);
+
+  var p = this.box.centerPoint();
+
+  this.label = this.canvas.text(p.x, p.y, this.l).attr("fill", "#FFF");
+}
+
+
+
+
+
+function KeyRow(box, key){
+  this.box    = box;
+  this.key    = key;
+  this.canvas = this.key.canvas;
+
+  this.draw();
+}
+
+KeyRow.prototype.draw = function(){
+  var y = (this.key.chart.numBoxes() * Box.area_height) + (Timeline.size * 2);
+
+  this.task_cell       = new KeyCell(0, y, TimelineKey.task_width, this.box.label, this.canvas);
+  this.resource_cell   = new KeyCell(this.key.resource_x, y, TimelineKey.resource_width, this.box.resource, this.canvas);
+  this.start_date_cell = new KeyCell(this.key.start_date_x, y, TimelineKey.dates_width, this.box.start_date.formattedString(), this.canvas);
+  this.end_date_cell   = new KeyCell(this.key.end_date_x, y, TimelineKey.dates_width, this.box.end_date.formattedString(), this.canvas);
 }
 
 
@@ -544,7 +616,7 @@ function TimelineKey(chart){
   this.chart  = chart;
   this.height = this.chart.height;
   this.width  = TimelineKey.area_width;
-  this.canvas = new Raphael(0, 0, this.width, this.height);
+  this.canvas = new Raphael(0, 200, this.width, this.height);
   this.rows   = new Array();
 
   this.resource_x   = (TimelineKey.task_width);
@@ -581,78 +653,6 @@ TimelineKey.prototype.resize = function(){
   this.height = this.chart.height;
   this.canvas.setSize(this.width, this.height);
   this.drawRow();
-}
-
-
-
-
-
-function KeyRow(box, key){
-  this.box    = box;
-  this.key    = key;
-  this.canvas = this.key.canvas;
-
-  this.draw();
-}
-
-KeyRow.prototype.draw = function(){
-  var y = (this.key.chart.numBoxes() * Box.area_height) + (Timeline.size * 2);
-
-  this.task_cell       = new KeyCell(0, y, TimelineKey.task_width, this.box.label, this.canvas);
-  this.resource_cell   = new KeyCell(this.key.resource_x, y, TimelineKey.resource_width, this.box.resource, this.canvas);
-  this.start_date_cell = new KeyCell(this.key.start_date_x, y, TimelineKey.dates_width, this.box.start_date.formattedString(), this.canvas);
-  this.end_date_cell   = new KeyCell(this.key.end_date_x, y, TimelineKey.dates_width, this.box.end_date.formattedString(), this.canvas);
-}
-
-
-
-
-
-function KeyHeader(x, y, w, label, canvas){
-  this.x      = x;
-  this.y      = y;
-  this.h      = Timeline.size;
-  this.w      = w;
-  this.l      = label;
-  this.canvas = canvas;
-
-  this.draw();
-}
-
-KeyHeader.prototype.draw = function(){
-  this.box = this.canvas.rect(this.x, this.y, this.w, this.h).attr("fill", TimelineKey.header_color);
-
-  var p = this.box.centerPoint();
-
-  this.label = this.canvas.text(p.x, p.y, this.l).attr("fill", "#FFF");
-}
-
-
-
-
-
-function KeyCell(x, y, w, label, canvas){
-  this.x      = x;
-  this.y      = y;
-  this.h      = Box.area_height;
-  this.w      = w;
-  this.l      = label;
-  this.canvas = canvas;
-
-  this.draw();
-}
-
-KeyCell.prototype.draw = function(){
-  this.box = this.canvas.rect(this.x, this.y, this.w, this.h);
-
-  // Draw the label
-  this.label = this.canvas.text(0, 0, this.l);
-
-  var x = this.x + (this.label.getBBox().width / 2) + 4;
-  var y = this.box.centerPoint().y + 1;
-
-  // Move the label to the correct location
-  this.label.translate(x, y);
 }
 
 
@@ -734,25 +734,29 @@ function interrogate(obj){
 
 
 
-$(document).ready(function(){
+function getData(){
   var chart = new Chart("Nov 1, 2009", "Dec 31, 2009");
 
-  var b1  = new Box("Nov 3, 2009", "Nov 12, 2009", "ASDF", "MD", chart);
-  var b2  = new Box("Nov 5, 2009", "Nov 17, 2009", "Working?", "GM", chart);
-  var b3  = new Box("Nov 15, 2009", "Nov 23, 2009", "Whoa...", "TM", chart);
-  var b4  = new Box("Nov 17, 2009", "Nov 25, 2009", "Hrm", "GG", chart);
-  var b5  = new Box("Nov 17, 2009", "Dec 5, 2009", "Long!", "KJ", chart);
-  var b6  = new Box("Dec 1, 2009", "Dec 14, 2009", "Oh yes!", "KH", chart);
-  var b7  = new Box("Dec 3, 2009", "Dec 9, 2009", "Something", "LS", chart);
-  var b8  = new Box("Dec 3, 2009", "Dec 12, 2009", "Same Day", "SS", chart);
-  var b9  = new Box("Dec 4, 2009", "Dec 15, 2009", "Next Day", "GD", chart);
+  $.getJSON("http://localhost:4567/json",
+    function(data){
+      $.each(data, function(i, item){
+        new Box(item.start_date, item.end_date, item.task, item.resource, chart);
+      });
+    }
+  );
+}
 
-  b1.pointsTo(b2);
-  b2.pointsTo(b3);
-  b3.pointsTo(b4);
-  b3.pointsTo(b5);
-  b5.pointsTo(b6);
-  b6.pointsTo(b7);
-  b7.pointsTo(b8);
-  b8.pointsTo(b9);
+
+
+
+
+$(document).ready(function(){
+  // b1.pointsTo(b2);
+  // b2.pointsTo(b3);
+  // b3.pointsTo(b4);
+  // b3.pointsTo(b5);
+  // b5.pointsTo(b6);
+  // b6.pointsTo(b7);
+  // b7.pointsTo(b8);
+  // b8.pointsTo(b9);
 });
