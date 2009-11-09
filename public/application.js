@@ -1,24 +1,12 @@
-/*
-
-  TODO:
-  Arrows made by #pointsTo should come off the right end of the box, not the bottom
-  Add day of month Timeline strip
-
-*/
-
-
-
-
-
 // Default class properties
 Box.height           = 12;
-Box.radius           = Box.height / 6;
 Box.color            = "#939393";
+Box.radius           = Box.height / 6;
 Box.area_height      = Box.height * 2;
 
 Timeline.size        = 20;
-Timeline.area_height = Timeline.size * 3;
-Timeline.today_color = "#d1f3ff";
+Timeline.area_height = Timeline.size * 4;
+Timeline.today_color = "#D1F3FF";
 
 CompletionBox.color  = "#DFDFDF";
 
@@ -88,6 +76,10 @@ Date.prototype.peek = function(label){
 
 Date.prototype.equals = function(other){
   return this.formattedString() == other.formattedString();
+}
+
+Date.prototype.isWeekend = function(){
+  return this.is().saturday() || this.is().sunday()
 }
 
 
@@ -297,14 +289,13 @@ CompletionBox.prototype.draw = function(){
 
 
 // Day class
-function Day(x, y, date, canvas){
-  this.x        = x;
-  this.y        = y;
-  this.date     = date;
-  this.canvas   = canvas;
-  this.day_abbr = new Array("S","M","T","W","T","F","S");
-  this.label    = this.day_abbr[i%7];
-  this.shape    = null;
+function Day(x, y, label, date, canvas){
+  this.x      = x;
+  this.y      = y;
+  this.canvas = canvas;
+  this.date   = date;
+  this.label  = label;
+  this.shape  = null;
 
   this.draw();
 }
@@ -319,10 +310,22 @@ Day.prototype.centerPoint = function(){
 Day.prototype.draw = function(){
   var p = this.centerPoint();
 
-  this.shape = this.canvas.rect(this.x, this.y, Timeline.size, Timeline.size).attr({fill: "#efefef"});
+  // Draw the shape
+  this.shape = this.canvas.rect(this.x, this.y, Timeline.size, Timeline.size);
+
+  // Colorize it based on weekend status
+  this.colorize();
+
+  // Add the label
   this.canvas.text(p.x, p.y, this.label);
+}
 
-
+Day.prototype.colorize = function(){
+  if(this.date.isWeekend()){
+    this.shape.attr({fill: "#CCC"})
+  } else {
+    this.shape.attr({fill: "#EFEFEF"});
+  }
 }
 
 Day.prototype.topLeft = function(){
@@ -439,6 +442,7 @@ Timeline.prototype.draw = function(){
   this.months = this.drawMonths();
   this.days   = this.drawDays();
 
+  this.drawDateBoxes();
   this.drawDayGrid();
 }
 
@@ -461,15 +465,16 @@ Timeline.prototype.drawMonths = function(){
 }
 
 Timeline.prototype.drawDays = function(){
-  var days = new Array();
-  var y    = Timeline.size;
+  var days     = new Array();
+  var day_abbr = new Array("S","M","T","W","T","F","S");
+  var y        = Timeline.size;
 
   for(i=0; i<this.num_days; i++){
     var x = i * Timeline.size;
     var s = this.start_date.clone();
     var d = s.add(i).days();
 
-    days.push(new Day(x, y, d, this.canvas));
+    days.push(new Day(x, y, day_abbr[i%7], d, this.canvas));
   }
 
   return days;
@@ -497,6 +502,18 @@ Timeline.prototype.drawDayGrid = function(){
     }
 
     this.gridlines.push(new GridLine(x, y, this.chart));
+  }
+}
+
+Timeline.prototype.drawDateBoxes = function(){
+  var y = (Timeline.size * 2);
+
+  for(i=0; i<this.num_days; i++){
+    var x = i * Timeline.size;
+    var s = this.start_date.clone();
+    var d = s.add(i).days();
+
+    new Day(x, y, d.getDate(), d, this.canvas);
   }
 }
 
@@ -595,15 +612,15 @@ $(document).ready(function(){
   var end_date   = Date.parse("Dec 31, 2009");
   var chart      = new Chart(start_date, end_date);
 
-  var b1 = new Box(box1[0], box1[1], chart).says("ASDF");
-  var b2 = new Box(box2[0], box2[1], chart).says("Working?");
-  var b3 = new Box(box3[0], box3[1], chart).says("Whoa...");
-  var b4 = new Box(box4[0], box4[1], chart).says("Hrm");
-  var b5 = new Box(box5[0], box5[1], chart).says("Long!");
-  var b6 = new Box(box6[0], box6[1], chart).says("Oh yes!");
-  var b7 = new Box(box7[0], box7[1], chart).says("Something");
-  var b8 = new Box(box8[0], box8[1], chart).says("Same Day");
-  var b9 = new Box(box9[0], box9[1], chart).says("Next Day");
+  var b1         = new Box(box1[0], box1[1], chart).says("ASDF");
+  var b2         = new Box(box2[0], box2[1], chart).says("Working?");
+  var b3         = new Box(box3[0], box3[1], chart).says("Whoa...");
+  var b4         = new Box(box4[0], box4[1], chart).says("Hrm");
+  var b5         = new Box(box5[0], box5[1], chart).says("Long!");
+  var b6         = new Box(box6[0], box6[1], chart).says("Oh yes!");
+  var b7         = new Box(box7[0], box7[1], chart).says("Something");
+  var b8         = new Box(box8[0], box8[1], chart).says("Same Day");
+  var b9         = new Box(box9[0], box9[1], chart).says("Next Day");
 
   b1.pointsTo(b2);
   b2.pointsTo(b3);
