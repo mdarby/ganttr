@@ -15,6 +15,7 @@ h2. Requirements
 h2. How to Install
 
 Clone this sample app and copy everything in /public into your into your webroot (or /public/javascripts if you're in Rails).
+Add references to the files in your layout template.
 
 h2. How to Use
 
