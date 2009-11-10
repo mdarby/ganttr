@@ -776,6 +776,7 @@ function loadChart(){
       new Chart(data, "Nov 1, 2009", "Dec 31, 2009");
     }
   );
+
 }
 
 
@@ -783,7 +784,4 @@ function loadChart(){
 
 
 $(document).ready(function(){
-  $(window).bind("click", function(){
-    loadChart();
-  });
 });
