@@ -5,7 +5,7 @@ Box.radius                 = Box.height / 6;
 Box.area_height            = Box.height * 2;
 
 Chart.top_space            = 100;
-Chart.url                  = "http://localhost:4567/json"
+Chart.url                  = "/json"
 
 Timeline.size              = 20;
 Timeline.area_height       = (Timeline.size * 3) + (Box.height);
