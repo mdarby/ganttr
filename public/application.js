@@ -5,6 +5,7 @@ Box.radius                 = Box.height / 6;
 Box.area_height            = Box.height * 2;
 
 Chart.top_space            = 100;
+Chart.url                  = "http://localhost:4567/json"
 
 Timeline.size              = 20;
 Timeline.area_height       = (Timeline.size * 3) + (Box.height);
@@ -771,7 +772,7 @@ function interrogate(obj){
 function loadChart(){
   $("svg").remove();
 
-  $.getJSON("http://localhost:4567/json",
+  $.getJSON(Chart.url,
     function(data){
       new Chart(data, "Nov 1, 2009", "Dec 31, 2009");
     }
