@@ -10,10 +10,11 @@ h2. Requirements
 
 * "Raphael":http://raphaeljs.com
 * "jQuery":http://jquery.com
+* "DateJS":http://datejs.com
 
 h2. How to Install
 
-Drop Raphael, jQuery and ganttr.js into your webroot.
+Clone this sample app and copy everything in /public into your into your webroot (or /public/javascripts if you're in Rails).
 
 h2. How to Use
 
@@ -32,7 +33,8 @@ Ganttr uses data from a simple JSON request to design the chart. The JSON should
 </pre>
 
 A handful of configuration options can be changed at the top of ganttr.js to suit your needs.
-Once configured the way you like, you should "minify":http://dean.edwards.name/packer/ ganttr.js and add the result to your webroot.
+
+To load the chart just call @loadChart();@ from a click event, page load, whatever.
 
 h2. About the Author
 
