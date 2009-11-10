@@ -38,8 +38,7 @@ To load the chart just call @loadChart();@ from a click event, page load, whatev
 
 h2. Sample App
 
-You're looking at it. Just clone this repo, run "ruby sever.rb", then point your browser to http://localhost:4567
-You'll need to install the Sinatra gem if you haven't already.
+A live version of this sample app is available "here":http://ganttr-app.heroku.com
 
 h2. About the Author
 
