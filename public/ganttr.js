@@ -4,7 +4,7 @@ Box.color                  = "#939393";
 Box.radius                 = Box.height / 6;
 Box.area_height            = Box.height * 2;
 
-Chart.top_space            = 100;
+Chart.top_space            = 150;
 Chart.url                  = "/json"
 
 Timeline.size              = 20;
