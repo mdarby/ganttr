@@ -1,0 +1,41 @@
+h1. Ganttr
+
+A pure Javascript Gantt chart generator, drop in, point, render.
+
+h2. What it does
+
+Generates a Gantt Chart using the Raphael JS framework and a lil' jQuery.
+
+h2. Requirements
+
+* "Raphael":http://raphaeljs.com
+* "jQuery":http://jquery.com
+
+h2. How to Install
+
+Drop Raphael, jQuery and ganttr.js into your webroot.
+
+h2. How to Use
+
+Ganttr uses data from a simple JSON request to design the chart. The JSON should be in the format of:
+
+<pre>
+  {:boxes => [
+      {:start_date => "Nov 3, 2009", :end_date => "Nov 12, 2009", :label => "ASDF", :resource => "MD"},
+      {:start_date => "Nov 5, 2009", :end_date => "Nov 17, 2009", :label => "Working?", :resource => "GM"},
+      {:start_date => "Nov 15, 2009", :end_date => "Nov 23, 2009", :label => "Whoa...", :resource => "TM"}
+    ],
+    :arrows => [
+      {:from => 0, :to => [1,2]},
+      {:from => 1, :to => 2}
+    ]}.to_json
+</pre>
+
+A handful of configuration options can be changed at the top of ganttr.js to suit your needs.
+Once configured the way you like, you should "minify":http://dean.edwards.name/packer/ ganttr.js and add the result to your webroot.
+
+h2. About the Author
+
+My name is "Matt Darby.":http://blog.matt-darby.com I’m an IT Manager and Lead Dev at for "Dynamix Engineering":http://dynamix-ltd.com and hold a Master’s Degree in Computer Science from "Franklin University":http://www.franklin.edu in sunny "Columbus, OH.":http://en.wikipedia.org/wiki/Columbus,_Ohio
+
+Feel free to check out my "site":http://matt-darby.com or "recommend me":http://www.workingwithrails.com/person/10908-matt-darby
