@@ -36,6 +36,11 @@ A handful of configuration options can be changed at the top of ganttr.js to sui
 
 To load the chart just call @loadChart();@ from a click event, page load, whatever.
 
+h2. Sample App
+
+You're looking at it. Just clone this repo, run "ruby sever.rb", then point your browser to http://localhost:4567
+You'll need to install the Sinatra gem if you haven't already.
+
 h2. About the Author
 
 My name is "Matt Darby.":http://blog.matt-darby.com I’m an IT Manager and Lead Dev at for "Dynamix Engineering":http://dynamix-ltd.com and hold a Master’s Degree in Computer Science from "Franklin University":http://www.franklin.edu in sunny "Columbus, OH.":http://en.wikipedia.org/wiki/Columbus,_Ohio
