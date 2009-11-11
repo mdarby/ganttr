@@ -502,10 +502,9 @@ Line.prototype.draw = function(){
 
 
 
-function Month(x, y, w, label, canvas){
-  this.x       = x;
-  this.y       = y;
-  this.w       = w;
+function Month(x, w, label, canvas){
+  this.x       = x * Timeline.size;
+  this.w       = w * Timeline.size;
   this.label   = label;
   this.label_x = this.x + (this.w / 2);
   this.canvas  = canvas;
@@ -515,7 +514,7 @@ function Month(x, y, w, label, canvas){
 
 Month.prototype.draw = function(){
   this.canvas.rect(this.x, -1, this.w, Timeline.size + 1).attr({fill: "#BD0000", stroke: "#000"});
-  this.canvas.text(this.label_x, this.y / 2, this.label).attr({fill: "#FFF"});
+  this.canvas.text(this.label_x, (Timeline.size / 2) + 1, this.label).attr({fill: "#FFF"});
 }
 
 
@@ -573,18 +572,20 @@ Timeline.prototype.draw = function(){
 }
 
 Timeline.prototype.drawMonths = function(){
-  var months      = new Array();
-  var start_date  = this.chart.start_date;
-  var end_date    = this.chart.end_date;
-  var num_months  = start_date.monthsUntil(end_date);
-  var month_width = this.chart.width / num_months;
+  var months     = new Array();
+  var start_date = this.chart.start_date;
+  var end_date   = this.chart.end_date;
+  var num_months = start_date.monthsUntil(end_date);
+  var offset     = 0;
 
   for(var i=0; i<num_months; i++){
-    var s = start_date.clone();
-    var c = s.add(i).months();
-    var x = (i * month_width);
+    var curr_month = start_date.clone().add(i).months();
+    var eom        = curr_month.clone().moveToLastDayOfMonth();
+    var num_days   = curr_month.daysUntil(eom);
 
-    months.push(new Month(x, Timeline.size, month_width, c, this.canvas));
+    months.push(new Month(offset, num_days, curr_month, this.canvas));
+
+    offset += num_days;
   }
 
   return months;
