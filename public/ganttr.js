@@ -1,3 +1,11 @@
+/*
+
+  Replace all *.length based for loops with while loops. Much faster!
+
+*/
+
+
+
 // Default class properties
 Box.height                 = 12;
 Box.color                  = "#939393";
@@ -163,7 +171,7 @@ function Box(options, chart){
   this.num_days       = this.start_date.daysUntil(this.end_date);
   this.x              = this.start_day.topLeft().x;
   this.y              = Timeline.area_height + (Box.area_height * this.chart.numBoxes());
-  this.w              = (this.start_date.daysUntil(this.end_date) * Timeline.size) + Timeline.size;
+  this.w              = (this.start_date.daysUntil(this.end_date) * Timeline.size);
   this.h              = Box.height;
   this.canvas         = this.chart.canvas;
   this.shape          = this.draw();
@@ -211,8 +219,10 @@ Box.prototype.pointsTo = function(arr){
     new Arrow(this, this.chart.boxes[arr], this.canvas);
   } else {
     // This Arrow points to multiple Boxes
-    for(var x=0; x<arr.length; x++){
-      new Arrow(this, this.chart.boxes[arr[x]], this.canvas);
+    var i = arr.length;
+
+    while(i--){
+      new Arrow(this, this.chart.boxes[arr[i]], this.canvas);
     }
   }
 
@@ -240,12 +250,14 @@ Box.prototype.daysCompleted = function(){
     return this.num_days;
   }
 
-  for(var i=0; i<this.num_days; i++){
+  var i = this.num_days;
+
+  while(i--){
     var s = this.start_date.clone();
     var d = s.add(i).days();
 
     if(d.equals(curr_date)){
-      return i+1;
+      return i + 1;
     }
   }
 
@@ -297,7 +309,9 @@ Chart.prototype.resize = function(){
 }
 
 Chart.prototype.drawArrows = function(){
-  for(var i=0; i<this.arrow_array.length; i++){
+  var i = this.arrow_array.length;
+
+  while(i--){
     var curr_arrow = this.arrow_array[i];
     var from_box   = this.boxes[curr_arrow.from];
 
@@ -306,7 +320,9 @@ Chart.prototype.drawArrows = function(){
 
   // Loop through all TodayBoxes and resend them backwards
   // This keeps the visual order of Box > Arrow > TodayBox
-  for(var i=0; i<this.timeline.today_boxes.length; i++){
+  var i = this.timeline.today_boxes.length;
+
+  while(i--){
     this.timeline.today_boxes[i].shape.toBack();
   }
 }
@@ -608,7 +624,9 @@ Timeline.prototype.drawDays = function(){
 }
 
 Timeline.prototype.dayAt = function(date){
-  for(var i=0; i<this.days.length; i++){
+  var i = this.days.length;
+
+  while(i--){
     var curr_day = this.days[i].date;
 
     if(curr_day.equals(date)){
